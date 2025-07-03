@@ -12,8 +12,11 @@ import { Ionicons } from '@expo/vector-icons';
 const TaskDetail = ({ route, navigation, tasks, setTasks }) => {
   const { taskId } = route.params;
   const task = tasks.find((t) => t.id === taskId);
+  const lastShift = task.shifts?.[task.shifts.length - 1];
+  const isTaskCompleted = task.completed;
 
-  const handleTakeTask = () => {
+  // Take Task = Add first shift or next shift
+  const handleStartShift = () => {
     const updatedTasks = tasks.map((t) =>
       t.id === taskId
         ? {
@@ -32,6 +35,24 @@ const TaskDetail = ({ route, navigation, tasks, setTasks }) => {
     setTasks(updatedTasks);
   };
 
+  // End the current shift
+  const handleEndShift = () => {
+    const updatedTasks = tasks.map((t) =>
+      t.id === taskId
+        ? {
+            ...t,
+            shifts: t.shifts.map((s, i) =>
+              i === t.shifts.length - 1 && !s.end
+                ? { ...s, end: new Date().toISOString() }
+                : s
+            ),
+          }
+        : t
+    );
+    setTasks(updatedTasks);
+  };
+
+  // Complete the task (after all shifts done)
   const handleCompleteTask = () => {
     const updatedTasks = tasks.map((t) =>
       t.id === taskId
@@ -49,16 +70,22 @@ const TaskDetail = ({ route, navigation, tasks, setTasks }) => {
     setTasks(updatedTasks);
   };
 
-  const getStatus = () => {
-    if (task.completed) return 'Completed';
-    if (task.started) return 'In Progress';
-    return 'Not Started';
-  };
-
-  const getButtonStyle = () => {
-    if (task.completed) return { backgroundColor: '#FFD700' };
-    if (task.started) return { backgroundColor: '#999' };
-    return { backgroundColor: '#000' };
+  // Current shift status
+  const getActionButton = () => {
+    if (isTaskCompleted) return null;
+    if (!task.shifts?.length || (lastShift?.end && !isTaskCompleted)) {
+      return (
+        <TouchableOpacity style={[styles.takeButton, styles.startBtn]} onPress={handleStartShift}>
+          <Text style={styles.btnText}>Start Next Shift</Text>
+        </TouchableOpacity>
+      );
+    } else if (lastShift?.start && !lastShift?.end) {
+      return (
+        <TouchableOpacity style={[styles.takeButton, styles.endBtn]} onPress={handleEndShift}>
+          <Text style={styles.btnText}>End Current Shift</Text>
+        </TouchableOpacity>
+      );
+    }
   };
 
   return (
@@ -135,39 +162,20 @@ const TaskDetail = ({ route, navigation, tasks, setTasks }) => {
           })}
         </View>
 
-        {/* Take / Complete Button */}
-        <TouchableOpacity
-          style={[styles.takeButton, getButtonStyle()]}
-          onPress={
-            task.completed
-              ? null
-              : task.started
-              ? handleCompleteTask
-              : handleTakeTask
-          }
-          disabled={task.completed}
-        >
-          <Text
-            style={{
-              color: task.completed || task.started ? '#000' : '#fff',
-              textAlign: 'center',
-            }}
-          >
-            {task.completed
-              ? 'Task Completed'
-              : task.started
-              ? 'Mark as Completed'
-              : 'Take Task'}
-          </Text>
-        </TouchableOpacity>
+        {/* Action Buttons */}
+        {getActionButton()}
 
-        {/* Info */}
-        <Text style={styles.details}>
-          Expected Time: {task.expectedTime || 'N/A'}
-        </Text>
-        <Text style={styles.details}>
-          Status of the Task: {getStatus()}
-        </Text>
+        {!isTaskCompleted && lastShift?.end && (
+          <TouchableOpacity
+            style={[styles.takeButton, styles.completeBtn]}
+            onPress={handleCompleteTask}
+          >
+            <Text style={styles.btnText}>Mark Task Completed</Text>
+          </TouchableOpacity>
+        )}
+
+        <Text style={styles.details}>Expected Time: {task.expectedTime || 'N/A'}</Text>
+        <Text style={styles.details}>Status: {task.completed ? 'Completed' : task.started ? 'In Progress' : 'Not Started'}</Text>
       </ScrollView>
 
       {/* Footer */}
@@ -220,6 +228,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 20,
   },
+  startBtn: {
+    backgroundColor: '#000',
+  },
+  endBtn: {
+    backgroundColor: '#999',
+  },
+  completeBtn: {
+    backgroundColor: '#FFD700',
+  },
+  btnText: {
+    textAlign: 'center',
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   details: {
     fontSize: 16,
     marginBottom: 10,
@@ -234,7 +256,6 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  // Vertical shift tracker
   verticalTracker: {
     paddingLeft: 20,
     paddingTop: 20,
@@ -259,13 +280,13 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   dotCompleted: {
-    backgroundColor: '#f5a623',
+    backgroundColor: '#FFD700', // Yellow
   },
   dotInProgress: {
-    backgroundColor: '#ffa500',
+    backgroundColor: '#999', // Grey
   },
   dotUpcoming: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#000', // Black
   },
   line: {
     position: 'absolute',
@@ -283,13 +304,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   textCompleted: {
-    color: '#f5a623',
+    color: '#FFD700',
   },
   textInProgress: {
-    color: '#ffa500',
+    color: '#999',
   },
   textUpcoming: {
-    color: '#999',
+    color: '#000',
   },
   shiftSubtitle: {
     fontSize: 13,

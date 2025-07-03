@@ -8,7 +8,7 @@ const TaskDetail = ({ route, navigation, tasks, setTasks }) => {
 
   const handleTakeTask = () => {
     const updatedTasks = tasks.map((t) =>
-      t.id === taskId ? { ...t, started: true } : t
+      t.id === taskId ? { ...t, started: true, } : t
     );
     setTasks(updatedTasks);
   };
@@ -59,7 +59,7 @@ const TaskDetail = ({ route, navigation, tasks, setTasks }) => {
 
         <Text style={styles.details}>Expected Time: {task.expectedTime || 'N/A'}</Text>
         <Text style={styles.details}>
-          Status: {task.completed ? 'Completed' : task.started ? 'Completed' : 'Task Not Taken'}
+          Status: {task.completed}
         </Text>
       </View>
 

@@ -4,39 +4,35 @@ import {
   Text,
   StyleSheet,
   Image,
-  FlatList,
   TouchableOpacity,
+  FlatList,
   SafeAreaView,
   Platform,
 } from 'react-native';
-import { Checkbox } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons, Entypo, Feather } from '@expo/vector-icons';
+import { Ionicons, Entypo } from '@expo/vector-icons';
 
 const HomeScreen = ({ user, tasks, setTasks }) => {
   const [filter, setFilter] = useState('All');
   const navigation = useNavigation();
 
-  const filteredTasks = tasks.filter((task) => {
-    if (filter === 'All') return true;
-    if (filter === 'ToDo') return !task.completed;
-    if (filter === 'Completed') return task.completed;
-  });
+  const filteredTasks = tasks
+    .filter((task) => {
+      if (filter === 'All') return true;
+      if (filter === 'ToDo') return !task.completed;
+      if (filter === 'Completed') return task.completed;
+    })
+    .sort((a, b) => a.completed - b.completed); // Completed tasks move down
 
   const renderTask = ({ item }) => (
     <TouchableOpacity
       onPress={() => navigation.navigate('TaskDetail', { taskId: item.id })}
-      style={styles.taskItem}
+      style={[
+        styles.taskItem,
+        item.completed && { backgroundColor: '#000' },
+      ]}
     >
-      <Checkbox status={item.completed ? 'checked' : 'unchecked'} />
-      <Text
-        style={[
-          styles.taskText,
-          { textDecorationLine: item.completed ? 'line-through' : 'none' },
-        ]}
-      >
-        {item.title}
-      </Text>
+      <Text style={[styles.taskText, item.completed && { color: '#fff' }]}>{item.title}</Text>
     </TouchableOpacity>
   );
 
@@ -76,15 +72,14 @@ const HomeScreen = ({ user, tasks, setTasks }) => {
 
         {/* Footer Navigation */}
         <View style={styles.footerNav}>
-          <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.footerButton}>
-            <Ionicons name="home" size={24} color="#fff" />
-            <View style={styles.circle} />
+          <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+            <Ionicons name="home" size={24} color="#FFD700" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Tutorial')} style={styles.footerButton}>
+          <TouchableOpacity onPress={() => navigation.navigate('Tutorial')}>
             <Entypo name="controller-play" size={24} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.footerButton}>
-            <Feather name="settings" size={24} color="#fff" />
+          <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+            <Ionicons name="settings" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
@@ -98,9 +93,12 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingBottom: Platform.OS === 'android' ? 15 : 0,
+    paddingBottom: Platform.OS === 'android' ? 20 : 0,
   },
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   topBar: {
     height: 70,
     backgroundColor: '#000',
@@ -139,36 +137,28 @@ const styles = StyleSheet.create({
   },
   activeFilter: { fontWeight: 'bold', color: '#000' },
   inactiveFilter: { color: '#888' },
-  taskList: { paddingHorizontal: 20, paddingBottom: 10 },
-  taskItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 8,
-    backgroundColor: '#f0f0f0',
-    padding: 10,
-    borderRadius: 8,
+  taskList: {
+    paddingHorizontal: 20,
+    paddingBottom: 80, // enough space above footer
   },
-  taskText: { marginLeft: 10, fontSize: 16, color: '#000' },
+  taskItem: {
+    padding: 15,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    marginVertical: 6,
+  },
+  taskText: {
+    fontSize: 16,
+    color: '#000',
+  },
   footerNav: {
     height: 60,
     backgroundColor: '#000',
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-  },
-  footerButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    padding: 10,
-  },
-  circle: {
-    position: 'absolute',
-    bottom: -5,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#FFD700',
+    paddingBottom: Platform.OS === 'android' ? 10 : 0,
   },
 });
+
 

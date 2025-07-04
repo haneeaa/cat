@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,8 @@ const TaskDetail = ({ route, navigation, tasks, setTasks }) => {
   const lastShift = task.shifts?.[task.shifts.length - 1];
   const isTaskCompleted = task.completed;
 
-  // Take Task = Add first shift or next shift
+  const [expandedShiftIndex, setExpandedShiftIndex] = useState(null);
+
   const handleStartShift = () => {
     const updatedTasks = tasks.map((t) =>
       t.id === taskId
@@ -35,7 +36,6 @@ const TaskDetail = ({ route, navigation, tasks, setTasks }) => {
     setTasks(updatedTasks);
   };
 
-  // End the current shift
   const handleEndShift = () => {
     const updatedTasks = tasks.map((t) =>
       t.id === taskId
@@ -52,7 +52,6 @@ const TaskDetail = ({ route, navigation, tasks, setTasks }) => {
     setTasks(updatedTasks);
   };
 
-  // Complete the task (after all shifts done)
   const handleCompleteTask = () => {
     const updatedTasks = tasks.map((t) =>
       t.id === taskId
@@ -70,7 +69,6 @@ const TaskDetail = ({ route, navigation, tasks, setTasks }) => {
     setTasks(updatedTasks);
   };
 
-  // Current shift status
   const getActionButton = () => {
     if (isTaskCompleted) return null;
     if (!task.shifts?.length || (lastShift?.end && !isTaskCompleted)) {
@@ -90,12 +88,10 @@ const TaskDetail = ({ route, navigation, tasks, setTasks }) => {
 
   return (
     <View style={styles.container}>
-      {/* Top Bar */}
       <View style={styles.topBar}>
         <Image source={require('../assets/logo.png')} style={styles.logo} />
       </View>
 
-      {/* Back */}
       <Ionicons
         name="arrow-back"
         size={28}
@@ -106,63 +102,55 @@ const TaskDetail = ({ route, navigation, tasks, setTasks }) => {
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>{task.title || 'Task Title'}</Text>
-        <Text style={styles.description}>
-          {task.description || 'No description available.'}
-        </Text>
+        <Text style={styles.description}>{task.description || 'No description available.'}</Text>
 
-        {/* Vertical Shift Tracker */}
         <View style={styles.verticalTracker}>
           {task.shifts?.map((shift, index) => {
             const isCompleted = !!shift.end;
             const isCurrent = !shift.end && !!shift.start;
             const isUpcoming = !shift.start;
+            const isExpanded = expandedShiftIndex === index;
+
+            const mockData = {
+              engineHour: isCompleted ? (Math.random() * 10).toFixed(1) : '0',
+              fuel: isCompleted ? (Math.random() * 5).toFixed(2) + ' L' : '0 L',
+              loadCycle: isCompleted ? Math.floor(Math.random() * 20) : '0',
+              idleTime: isCompleted ? Math.floor(Math.random() * 30) + ' min' : '0 min',
+            };
 
             return (
-              <View key={index} style={styles.stepContainer}>
-                <View style={styles.leftColumn}>
+              <TouchableOpacity
+                key={index}
+                style={styles.shiftBox}
+                onPress={() => setExpandedShiftIndex(isExpanded ? null : index)}
+                activeOpacity={0.9}
+              >
+                <View style={styles.shiftHeader}>
                   <View
-                    style={[
-                      styles.dot,
-                      isCompleted
-                        ? styles.dotCompleted
-                        : isCurrent
-                        ? styles.dotInProgress
-                        : styles.dotUpcoming,
+                    style={[styles.dot,
+                      isCompleted ? styles.dotCompleted :
+                      isCurrent ? styles.dotInProgress :
+                      styles.dotUpcoming,
                     ]}
                   />
-                  {index !== task.shifts.length - 1 && <View style={styles.line} />}
+                  <Text style={styles.shiftTitle}>{shift.shiftLabel || `Shift ${index + 1}`}</Text>
                 </View>
 
-                <View style={styles.rightColumn}>
-                  <Text
-                    style={[
-                      styles.shiftTitle,
-                      isCompleted
-                        ? styles.textCompleted
-                        : isCurrent
-                        ? styles.textInProgress
-                        : styles.textUpcoming,
-                    ]}
-                  >
-                    {shift.shiftLabel || `Shift ${index + 1}`}
-                  </Text>
-                  <Text style={styles.shiftSubtitle}>
-                    {shift.start
-                      ? `Start: ${new Date(shift.start).toLocaleString()}`
-                      : 'Not started'}
-                  </Text>
-                  {shift.end && (
-                    <Text style={styles.shiftSubtitle}>
-                      End: {new Date(shift.end).toLocaleString()}
-                    </Text>
-                  )}
-                </View>
-              </View>
+                {isExpanded && (
+                  <View style={styles.metricsBox}>
+                    <Text style={styles.metric}>Start: {shift.start ? new Date(shift.start).toLocaleString() : 'Not started'}</Text>
+                    {shift.end && <Text style={styles.metric}>End: {new Date(shift.end).toLocaleString()}</Text>}
+                    <Text style={styles.metric}>Engine Hour: {mockData.engineHour}</Text>
+                    <Text style={styles.metric}>Fuel Consumption: {mockData.fuel}</Text>
+                    <Text style={styles.metric}>Load Cycle: {mockData.loadCycle}</Text>
+                    <Text style={styles.metric}>Idle Time: {mockData.idleTime}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             );
           })}
         </View>
 
-        {/* Action Buttons */}
         {getActionButton()}
 
         {!isTaskCompleted && lastShift?.end && (
@@ -178,7 +166,6 @@ const TaskDetail = ({ route, navigation, tasks, setTasks }) => {
         <Text style={styles.details}>Status: {task.completed ? 'Completed' : task.started ? 'In Progress' : 'Not Started'}</Text>
       </ScrollView>
 
-      {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>© 2025 My App</Text>
       </View>
@@ -255,65 +242,49 @@ const styles = StyleSheet.create({
   footerText: {
     color: '#fff',
   },
-
   verticalTracker: {
-    paddingLeft: 20,
-    paddingTop: 20,
-    borderLeftWidth: 2,
-    borderColor: '#ddd',
     marginBottom: 30,
   },
-  stepContainer: {
-    flexDirection: 'row',
-    marginBottom: 40,
-    position: 'relative',
+  shiftBox: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    marginBottom: 15,
+    backgroundColor: '#f9f9f9',
   },
-  leftColumn: {
-    width: 30,
+  shiftHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    position: 'relative',
+    backgroundColor: '#eee',
+    padding: 10,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
   },
   dot: {
     width: 14,
     height: 14,
     borderRadius: 7,
-    zIndex: 2,
+    marginRight: 10,
   },
   dotCompleted: {
-    backgroundColor: '#FFD700', // Yellow
+    backgroundColor: '#FFD700',
   },
   dotInProgress: {
-    backgroundColor: '#999', // Grey
+    backgroundColor: '#999',
   },
   dotUpcoming: {
-    backgroundColor: '#000', // Black
-  },
-  line: {
-    position: 'absolute',
-    top: 16,
-    width: 2,
-    height: 40,
-    backgroundColor: '#ccc',
-  },
-  rightColumn: {
-    flex: 1,
-    paddingLeft: 10,
+    backgroundColor: '#000',
   },
   shiftTitle: {
-    fontSize: 16,
     fontWeight: 'bold',
+    fontSize: 16,
   },
-  textCompleted: {
-    color: '#FFD700',
+  metricsBox: {
+    padding: 12,
   },
-  textInProgress: {
-    color: '#999',
-  },
-  textUpcoming: {
-    color: '#000',
-  },
-  shiftSubtitle: {
-    fontSize: 13,
-    color: '#666',
+  metric: {
+    fontSize: 14,
+    color: '#444',
+    marginBottom: 5,
   },
 });
